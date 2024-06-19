@@ -11,3 +11,4 @@ app.http('AgenteSCNet', {
         return { body: `Hello, ${name}!` };
     }
 });
+''
