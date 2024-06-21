@@ -73,9 +73,15 @@ var respPagamentoJson = `{
                   '                                 V\n'
               }`;
 
-var listaPOS = [pos];
 var id;
 
+let mapPOS = new Map();
+
+/*map.set('name', 'GeeksforGeeks');
+map.set('CEO', 'Sandeep Jain');
+console.log(map.get('name'));
+console.log(map.get('CEO'));
+*/
 app.http('AgenteSCNet', {
     methods: ['GET', 'POST'],
     authLevel: 'anonymous',
@@ -87,19 +93,41 @@ app.http('AgenteSCNet', {
             if (request.method=="GET") {
                 id = request.query.get('id_pos') || await request.text() || '0000';
                 context.log(`AgenteSCNet:id_pos=${id}`);
-                if (id == "0001") {
-                    return { body: `${reqPagamento}`};
+
+                var posObj =  mapPOS.get(id);
+                if (posObj) {
+                    if (posObj.solicitacao != null) {
+                        // Envia solicitação de pagamento para o POS
+                        context.log(`GET pagamento (${id})=${posObj.Solicitacao}`)                        
+                        posObj.ultimoGET =  new Date().toDateString();
+                        posObj.estadoPOS = "AGUARDACLIENTE"
+                        mapPOS.set(id,posObj);
+                        return { body: `${posObj.Solicitacao}`}
+                    }
+                    else {
+                        // Não há solicitação de pagamento para este pos
+                        posObj.ultimoGET =  new Date().toDateString();
+                        mapPOS.set(id,posObj);
+                        return { body: `{\"status\":\"204\",\"id_pos\":\"` + `${id}\"}`};
+                    }
                 }
-                return { body: `{\"status\":\"204\",\"id_pos\":\"` + `${id}\"}`};
+                else {
+                    // POS ativo
+                    var posObj = new Object();
+                    posObj.id_pos =  id;
+                    posObj.ultimoGET =  new Date().toDateString();
+                    posObj.estadoPOS = "ATIVO"
+                    return { body: `{\"status\":\"204\",\"id_pos\":\"` + `${id}\"}`};
+                }
             }
             else  
                 if (request.method=="POST") {
                     // Informações de Pagamento concluído no POS
                     try {
-                        const requestData = await request.json();
-                        //const obj = JSON.parse(requestData);
-                        context.log( `AgenteSCNet:POST body=${requestData}`)
-
+                        const reqData = await request.text();
+                        var reqObj = JSON.parse(reqData);
+                        context.log(`POST pagamento:${reqData}`);
+                        
                         return { body: `{\"status\":\"200\",\"id_pos\":\"` + `${id}\"}`};
                     }
                     catch(ex){
