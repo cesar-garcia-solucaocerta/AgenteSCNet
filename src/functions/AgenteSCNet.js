@@ -75,10 +75,7 @@ var respPagamentoJson = `{
 
 var id;
 
-//let mapPOS = new Map();
-//const mapPOS = require('./ServicoSCPos');
-const mapPOS = require('./SCNet');
-//import mapPOS from '../SCNetData'
+let mapPOS = new Map();
 
 /*map.set('name', 'GeeksforGeeks');
 map.set('CEO', 'Sandeep Jain');
@@ -97,15 +94,34 @@ app.http('AgenteSCNet', {
                 id = request.query.get('id_pos') || await request.text() || '0000';
                 context.log(`AgenteSCNet:id_pos=${id}`);
 
-                
+              
                 var posObj =  mapPOS.get(id);
                 if (posObj) {
                     // 
                     if (posObj.solicitacao != null) {
                         // Envia solicitação de pagamento para o POS
-                        context.log(`GET pagamento (${id})=${posObj.Solicitacao}`)                        
+                        context.log(`AgenteSCNet:GET pagamento (${id})=${posObj.Solicitacao}`)                        
                         posObj.ultimoGET =  new Date().getTime();
-                        posObj.estadoPOS = "AGUARDACLIENTE"
+                        posObj.estadoPOS = "AGUARDACLIENTE";
+
+                        https.get('http://localhost:7071/api/SCNetData?id_pos=', (resp) => {
+                            let data = '';
+                        
+                            // A chunk of data has been recieved.
+                            resp.on('data', (chunk) => {
+                              data += chunk;
+                            });
+                        
+                            // The whole response has been received. Print out the result.
+                            resp.on('end', () => {
+                              context.log("AgenteSCNet:SUCCESS", JSON.parse(data));
+                              context.done(null, data);
+                            });
+                        
+                          }).on("error", (err) => {
+                            context.log("ERROR: " + err.message);
+                          });
+            
                         mapPOS.set(id,posObj);
                         return { body: `${posObj.Solicitacao}`}
                     }
@@ -123,7 +139,7 @@ app.http('AgenteSCNet', {
                     posObj.ultimoGET =  new Date().getTime();
                     var dateNow = new Date(posObj.ultimoGET).toString();
                     posObj.estadoPOS = "ATIVO"
-                    context.log(`GET: id_pos=${posObj.id_pos}, time=${dateNow}`);
+                    context.log(`AgenteSCNet:GET: id_pos=${posObj.id_pos}, time=${dateNow}`);
                     return { body: `{\"status\":\"204\",\"id_pos\":\"` + `${id}\"}`};
                 }
             }
@@ -133,7 +149,7 @@ app.http('AgenteSCNet', {
                     try {
                         const reqData = await request.text();
                         var reqObj = JSON.parse(reqData);
-                        context.log(`POST pagamento:${reqData}`);
+                        context.log(`AgenteSCNet:POST pagamento:${reqData}`);
                         
                         return { body: `{\"status\":\"200\",\"id_pos\":\"` + `${id}\"}`};
                     }

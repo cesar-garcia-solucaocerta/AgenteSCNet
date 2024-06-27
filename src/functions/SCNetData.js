@@ -4,10 +4,10 @@ let mapPOS = new Map();
 var id;
 var estado;
 
-app.http('SCNet', {
+app.http('SCNetData', {
     methods: ['GET', 'POST'],
     authLevel: 'anonymous',
-    route: '/{id:int?}',
+    route: 'SCNetData/{id:int?}',
     handler: async (request, context) => {
         context.log(`SCNetData:Http ${request.method} request for url "${request.url}"`);
 
@@ -22,7 +22,7 @@ app.http('SCNet', {
                     // POS encontrado
                     if (posObj.solicitacao != null) {
                         // Envia solicitação de pagamento para o POS
-                        context.log(`GET pagamento (${id})=${posObj.Solicitacao}`)                        
+                        context.log(`SCNetData:GET pagamento (${id})=${posObj.Solicitacao}`)                        
                         posObj.ultimoGET =  new Date().getTime();
                         posObj.estadoPOS = "AGUARDACLIENTE"
                         mapPOS.set(id,posObj);
@@ -33,17 +33,20 @@ app.http('SCNet', {
                         posObj.ultimoGET =  new Date().getTime();
                         mapPOS.set(id,posObj);
                         return { body: `{\"status\":\"204\",` +
-                                       `\"id_pos\":\"` + `${id}\"}` +
-                                       `\"estado\":\"` + `${posObj.estado}\"}` +
-                                       `\"solicitacao\":\"\"}` +
+                                       `\"id_pos\":\"` + `${id}\",` +
+                                       `\"estado\":\"` + `${posObj.estado}\",` +
+                                       `\"solicitacao\":\"\"}` 
                                     };
                     }
                 }
                 else {
                     // POS não encontrado. Retorna estado "INATIVO"
-                    context.log(`GET: id_pos=${posObj.id_pos}, time=${dateNow}`);
+                    var posObj = new Object();
+                    posObj.id_pos = id;
+                    posObj.estado = "ATIVO";
+                    mapPOS.set(id,posObj);
                     return { body: `{\"status\":\"204\",` + 
-                                   `\"id_pos\":\"` + `${id}\"` + 
+                                   `\"id_pos\":\"` + `${id}\",` + 
                                    `\"estado\":\"INATIVO\"}`};
                 }
             }
@@ -53,33 +56,29 @@ app.http('SCNet', {
                     try {
                         const reqData = await request.text();
                         var reqObj = JSON.parse(reqData);
-                        context.log(`POST:${reqData}`);
+                        context.log(`SCNetData:POST:${reqData}`);
                         id = reqObj.id_pos;      
                         var posObj =  mapPOS.get(id);
-                        if (posObj) {
-                            // Dados do POS encontrados
-                            posObj.ultimaSolicitacao =  new Date().getTime();;
-                            posObj.solicitacao = reqObj.solicitacao
-
-
-
-
-                        var posObj = new Object();
-                        posObj.id_pos =  id;
-                        posObj.ultimaSolicitacao =  new Date().getTime();;
-                        posObj.estadoPOS = "INATIVO"
-                        context.log(`GET: id_pos=${posObj.id_pos}, time=${dateNow}`);            
-
-                        return { body: `{\"status\":\"200\",\"id_pos\":\"` + `${id}\"}`};
+                        if (!posObj) {
+                            // Recebeu solicitação para POS INATIVO. Cria entrada
+                            var posObj = new Object();
+                            posObj.id_pos = id;
+                            posObj.estado = "INATIVO"
+                        }
+                        posObj.ultimaSolicitacao =  new Date().getTime();
+                        posObj.solicitacao = JSON.stringify(reqObj);
+                        mapPOS.set(id,posObj);
+                        return { body: `{\"status\":\"204\",\"id_pos\":\"` + `${id}\"}`};
+                        // Dados do POS encontrados
                     }
                     catch(ex){
-                        context.log(`AgenteSCNet: Erro "${ex}"`);
+                        context.log(`SCNetData: Erro "${ex}"`);
                         return { body: `{\"status\":\"200\",\"id_pos\":\"` + `${id}\"}`};
                     }
                 }
         }
         catch (ex){
-            context.log(`AgenteSCNet: Erro em POST \pagamento:"${ex}"`);
+            context.log(`SCNetData: Erro:"${ex}"`);
         }
     }
 });
