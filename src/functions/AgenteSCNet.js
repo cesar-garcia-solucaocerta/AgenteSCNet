@@ -75,7 +75,10 @@ var respPagamentoJson = `{
 
 var id;
 
-let mapPOS = new Map();
+//let mapPOS = new Map();
+//const mapPOS = require('./ServicoSCPos');
+const mapPOS = require('./SCNet');
+//import mapPOS from '../SCNetData'
 
 /*map.set('name', 'GeeksforGeeks');
 map.set('CEO', 'Sandeep Jain');
@@ -94,29 +97,33 @@ app.http('AgenteSCNet', {
                 id = request.query.get('id_pos') || await request.text() || '0000';
                 context.log(`AgenteSCNet:id_pos=${id}`);
 
+                
                 var posObj =  mapPOS.get(id);
                 if (posObj) {
+                    // 
                     if (posObj.solicitacao != null) {
                         // Envia solicitação de pagamento para o POS
                         context.log(`GET pagamento (${id})=${posObj.Solicitacao}`)                        
-                        posObj.ultimoGET =  new Date().toDateString();
+                        posObj.ultimoGET =  new Date().getTime();
                         posObj.estadoPOS = "AGUARDACLIENTE"
                         mapPOS.set(id,posObj);
                         return { body: `${posObj.Solicitacao}`}
                     }
                     else {
-                        // Não há solicitação de pagamento para este pos
-                        posObj.ultimoGET =  new Date().toDateString();
+                        // Não há solicitação de pagamento para este pos. Atualiza ultimo Get
+                        posObj.ultimoGET =  new Date().getTime();
                         mapPOS.set(id,posObj);
                         return { body: `{\"status\":\"204\",\"id_pos\":\"` + `${id}\"}`};
                     }
                 }
                 else {
-                    // POS ativo
+                    // POS ativo. Insere no mapPOS
                     var posObj = new Object();
                     posObj.id_pos =  id;
-                    posObj.ultimoGET =  new Date().toDateString();
+                    posObj.ultimoGET =  new Date().getTime();
+                    var dateNow = new Date(posObj.ultimoGET).toString();
                     posObj.estadoPOS = "ATIVO"
+                    context.log(`GET: id_pos=${posObj.id_pos}, time=${dateNow}`);
                     return { body: `{\"status\":\"204\",\"id_pos\":\"` + `${id}\"}`};
                 }
             }

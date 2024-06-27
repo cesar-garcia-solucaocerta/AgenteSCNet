@@ -1,6 +1,12 @@
 const { app } = require('@azure/functions');
 
-let mapPOS = new Map();
+const mapPOS = require('./SCNetData');
+
+//let mapPOS = new Map();
+//ServicoSCPos.exports = { mapPOS };
+//const mapPOS = require('src/functions/SCNetData.js');
+
+
 
 app.http('ServicoSCPos', {
     methods: ['POST'],
@@ -36,5 +42,8 @@ app.http('ServicoSCPos', {
         }
     }
 });
+function  getPOS(){
+    
+}
 
 ''
